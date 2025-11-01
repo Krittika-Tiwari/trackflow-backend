@@ -1,6 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
+import { Public } from './common/decorators/public.decorator';
 
 @Controller()
 export class AppController {
@@ -10,6 +11,7 @@ export class AppController {
   ) {}
 
   @Get('health')
+  @Public()
   healthCheck() {
     const isConnected = this.dataSource.isInitialized;
     return {
@@ -21,6 +23,7 @@ export class AppController {
   }
 
   @Get()
+  @Public()
   getWelcome() {
     return {
       message: '🚀 Welcome to TrackFlow API',

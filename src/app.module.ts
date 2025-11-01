@@ -1,72 +1,52 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { ConfigModule } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { APP_GUARD } from '@nestjs/core';
+
+import appConfig from './config/app.config';
+import jwtConfig from './config/jwt.config';
+
+import { User } from './modules/users/entities/user.entity';
+import { SocialAccount } from './modules/social-accounts/entities/social-account.entity';
+import { Post } from './modules/posts/entities/post.entity';
+
+import { AnalyticsSnapshot } from './modules/analytics/entities/analytics-snapshot.entity';
+
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
-import { SocialAccountsModule } from './modules/social-accounts/social-accounts.module';
-import { PostsModule } from './modules/posts/posts.module';
-import { AnalyticsModule } from './modules/analytics/analytics.module';
-import { SchedulerModule } from './modules/scheduler/scheduler.module';
-import { TwitterModule } from './modules/integrations/twitter/twitter.module';
-import { InstagramModule } from './modules/integrations/instagram/instagram.module';
-import { LinkedinModule } from './modules/integrations/linkedin/linkedin.module';
-import { FacebookModule } from './modules/integrations/facebook/facebook.module';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import databaseConfig from './config/database.config';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { ScheduleModule } from '@nestjs/schedule';
-import { BullModule } from '@nestjs/bull';
+import { AppController } from './app.controller';
+import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
+import { ScheduledPost } from './modules/scheduler/entities/scheduler.entity';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig],
+      load: [appConfig, jwtConfig],
       envFilePath: '.env',
     }),
 
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres' as const,
-        host: configService.get<string>('database.host'),
-        port: configService.get<number>('database.port'),
-        username: configService.get<string>('database.username'),
-        password: configService.get<string>('database.password'),
-        database: configService.get<string>('database.database'),
-        entities: configService.get('database.entities'),
-        synchronize: configService.get<boolean>('database.synchronize'),
-        logging: configService.get<boolean>('database.logging'),
-        autoLoadEntities: false,
-        retryAttempts: 3,
-        retryDelay: 3000,
-      }),
+    TypeOrmModule.forRoot({
+      type: 'postgres',
+      host: process.env.DB_HOST || 'localhost',
+      port: parseInt(process.env.DB_PORT || '5432', 10),
+      username: process.env.DB_USERNAME,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_DATABASE || 'trackflow',
+      entities: [User, SocialAccount, Post, ScheduledPost, AnalyticsSnapshot],
+      synchronize: process.env.NODE_ENV === 'development',
+      logging: true,
     }),
-    ScheduleModule.forRoot(),
 
-    BullModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        redis: {
-          host: configService.get<string>('REDIS_HOST', 'localhost'),
-          port: configService.get<number>('REDIS_PORT', 6379),
-        },
-      }),
-    }),
     UsersModule,
     AuthModule,
-    SocialAccountsModule,
-    PostsModule,
-    AnalyticsModule,
-    SchedulerModule,
-    TwitterModule,
-    InstagramModule,
-    LinkedinModule,
-    FacebookModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+  ],
 })
 export class AppModule {}
