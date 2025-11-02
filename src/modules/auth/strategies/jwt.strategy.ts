@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
@@ -15,7 +16,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate async operation
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     return {
       id: payload.sub,
       email: payload.email,
