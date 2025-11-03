@@ -7,7 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Post } from 'src/modules/posts/entities/post.entity';
 import { SocialAccount } from 'src/modules/social-accounts/entities/social-account.entity';
 import { TwitterApi } from 'twitter-api-v2';
-import { Repository } from 'typeorm';
+import { Repository, DeepPartial } from 'typeorm';
 
 @Injectable()
 export class TwitterService {
@@ -69,7 +69,6 @@ export class TwitterService {
 
   private async saveTweet(socialAccountId: string, tweetData: any) {
     try {
-      // Check if tweet already exists
       const existing = await this.postRepository.findOne({
         where: {
           socialAccountId,
@@ -78,7 +77,6 @@ export class TwitterService {
       });
 
       if (existing) {
-        // Update existing tweet with new metrics
         existing.likesCount = tweetData.public_metrics?.like_count || 0;
         existing.commentsCount = tweetData.public_metrics?.reply_count || 0;
         existing.sharesCount = tweetData.public_metrics?.retweet_count || 0;
@@ -91,12 +89,11 @@ export class TwitterService {
         return existing;
       }
 
-      // Create new post record
       const post = this.postRepository.create({
         socialAccountId,
         postId: tweetData.id,
         content: tweetData.text,
-        postType: this.getPostType(tweetData),
+        postType: this.getPostType(tweetData) as unknown as Post['postType'],
         postUrl: `https://twitter.com/i/web/status/${tweetData.id}`,
         likesCount: tweetData.public_metrics?.like_count || 0,
         commentsCount: tweetData.public_metrics?.reply_count || 0,
@@ -112,10 +109,6 @@ export class TwitterService {
     }
   }
 
-  // ==========================================
-  // EXPLANATION: Calculate engagement rate
-  // Engagement Rate = (Likes + Comments + Shares) / Impressions * 100
-  // ==========================================
   private calculateEngagementRate(metrics: any): number {
     if (
       !metrics ||
@@ -160,15 +153,13 @@ export class TwitterService {
       if (!account) {
         throw new BadRequestException('Account not found');
       }
-      // Fetch user info from Twitter
       const user = await client.v2.user(account.accountId, {
         'user.fields': ['public_metrics', 'profile_image_url', 'description'],
       });
 
-      // Update our database with latest info
       account.followerCount = user.data.public_metrics?.followers_count || 0;
       account.followingCount = user.data.public_metrics?.following_count || 0;
-      account.profilePictureUrl = user.data.profile_image_url || null;
+      account.profilePictureUrl = user.data.profile_image_url || '';
 
       await this.socialAccountRepository.save(account);
 
@@ -179,21 +170,13 @@ export class TwitterService {
     }
   }
 
-  // ==========================================
-  // EXPLANATION: Post a new tweet
-  // ==========================================
   async postTweet(socialAccountId: string, text: string) {
     try {
       this.logger.log(`Posting tweet for account: ${socialAccountId}`);
-
       const client = await this.getTwitterClient(socialAccountId);
-
-      // Post tweet to Twitter
       const tweet = await client.v2.tweet(text);
-
       this.logger.log(`Tweet posted successfully: ${tweet.data.id}`);
 
-      // Save to our database
       await this.saveTweet(socialAccountId, {
         id: tweet.data.id,
         text: tweet.data.text,
@@ -216,13 +199,8 @@ export class TwitterService {
   async syncAccount(socialAccountId: string) {
     try {
       this.logger.log(`Starting sync for account: ${socialAccountId}`);
-
-      // Fetch latest tweets
       await this.fetchRecentTweets(socialAccountId, 20);
-
-      // Update profile info
       await this.getUserProfile(socialAccountId);
-
       this.logger.log(`Sync completed for account: ${socialAccountId}`);
 
       return { success: true, message: 'Account synced successfully' };
