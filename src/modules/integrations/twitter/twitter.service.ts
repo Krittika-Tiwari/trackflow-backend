@@ -7,7 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Post } from 'src/modules/posts/entities/post.entity';
 import { SocialAccount } from 'src/modules/social-accounts/entities/social-account.entity';
 import { TwitterApi } from 'twitter-api-v2';
-import { Repository, DeepPartial } from 'typeorm';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class TwitterService {
