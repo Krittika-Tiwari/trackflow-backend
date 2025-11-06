@@ -17,6 +17,9 @@ import { AuthModule } from './modules/auth/auth.module';
 import { AppController } from './app.controller';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { ScheduledPost } from './modules/scheduler/entities/scheduler.entity';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { PostsModule } from './modules/posts/posts.module';
+import { SocialAccountsModule } from './modules/social-accounts/social-accounts.module';
 
 @Module({
   imports: [
@@ -40,6 +43,9 @@ import { ScheduledPost } from './modules/scheduler/entities/scheduler.entity';
 
     UsersModule,
     AuthModule,
+    SocialAccountsModule,
+    PostsModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [
