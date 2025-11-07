@@ -61,6 +61,7 @@ export class AnalyticsService {
     };
   }
 
+
   async getFollowerGrowth(userId: string, startDate: Date, endDate: Date) {
     // Get daily snapshots from database
     const snapshots = await this.snapshotRepository
@@ -74,16 +75,23 @@ export class AnalyticsService {
       .orderBy('snapshot.snapshotDate', 'ASC')
       .getMany();
 
+    // Group by date and sum followers
     const growthData: { [key: string]: number } = {};
 
     snapshots.forEach((snapshot) => {
-      const date = snapshot.snapshotDate.toISOString().split('T')[0];
-      if (!growthData[date]) {
-        growthData[date] = 0;
+      // Fix: Handle snapshotDate as both string and Date
+      const dateStr =
+        snapshot.snapshotDate instanceof Date
+          ? snapshot.snapshotDate.toISOString().split('T')[0]
+          : new Date(snapshot.snapshotDate).toISOString().split('T')[0];
+
+      if (!growthData[dateStr]) {
+        growthData[dateStr] = 0;
       }
-      growthData[date] += snapshot.followersCount || 0;
+      growthData[dateStr] += snapshot.followersCount || 0;
     });
 
+    // Convert to array format for charts
     return Object.entries(growthData).map(([date, followers]) => ({
       date,
       followers,
