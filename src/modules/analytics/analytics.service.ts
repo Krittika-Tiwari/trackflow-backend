@@ -61,7 +61,6 @@ export class AnalyticsService {
     };
   }
 
-
   async getFollowerGrowth(userId: string, startDate: Date, endDate: Date) {
     // Get daily snapshots from database
     const snapshots = await this.snapshotRepository
